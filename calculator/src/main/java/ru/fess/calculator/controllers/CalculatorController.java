@@ -12,6 +12,7 @@ import ru.fess.calculator.model.dto.CreditDto;
 import ru.fess.calculator.model.dto.LoanOfferDto;
 import ru.fess.calculator.model.dto.LoanStatementRequestDto;
 import ru.fess.calculator.model.dto.ScoringDataDto;
+import ru.fess.calculator.service.CalculatorService;
 import ru.fess.calculator.service.CalculatorServiceIml;
 
 import java.util.List;
@@ -21,7 +22,7 @@ import java.util.List;
 @RequestMapping("/calculator")
 @RequiredArgsConstructor
 public class CalculatorController {
-    private final CalculatorServiceIml calculatorService;
+    private final CalculatorService calculatorService;
 
     @Operation(summary = "Calculate loan offers")
     @PostMapping("/offers")
