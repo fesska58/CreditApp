@@ -17,7 +17,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class CalculatorServiceIml implements CalculatorService {
+public class CalculatorServiceImpl implements CalculatorService {
     private final CalculatorProperties calculatorProperties;
 
     @Override

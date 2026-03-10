@@ -10,11 +10,11 @@ import java.time.LocalDate;
 
 @Data
 public class LoanStatementRequestDto {
-    @Schema(description = "Дoan amount", example = "500000")
+    @Schema(description = "Loan amount", example = "500000")
     @NotNull
     private BigDecimal amount;
 
-    @Schema(description = "Еerm in months", example = "12")
+    @Schema(description = "Term in months", example = "12")
     @NotNull
     private Integer term;
 

@@ -13,7 +13,6 @@ import ru.fess.calculator.model.dto.LoanOfferDto;
 import ru.fess.calculator.model.dto.LoanStatementRequestDto;
 import ru.fess.calculator.model.dto.ScoringDataDto;
 import ru.fess.calculator.service.CalculatorService;
-import ru.fess.calculator.service.CalculatorServiceIml;
 
 import java.util.List;
 

@@ -33,8 +33,6 @@ class CalculatorControllerTest {
     private final MockMvc mockMvc =
             MockMvcBuilders.standaloneSetup(controller).build();
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     @Test
     void calculateOffers_shouldReturnOffers() throws Exception {
 

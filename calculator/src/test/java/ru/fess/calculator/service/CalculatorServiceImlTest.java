@@ -15,7 +15,9 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class CalculatorServiceImlTest {
-    private CalculatorService calculatorService;
+    private CalculatorServiceImpl calculatorService;
+    private LoanStatementRequestDto loanStatementRequestDto;
+    private ScoringDataDto request;
 
     @BeforeEach
     void setUp() {
@@ -24,12 +26,10 @@ public class CalculatorServiceImlTest {
         properties.setInsuranceDiscount(BigDecimal.valueOf(3));
         properties.setSalaryDiscount(BigDecimal.valueOf(1));
 
-        calculatorService = new CalculatorServiceIml(properties);
-    }
+        calculatorService = new CalculatorServiceImpl(properties);
 
-    @Test
-    void calculateOffers_shouldReturnFourOffers() {
-        LoanStatementRequestDto loanStatementRequestDto = new LoanStatementRequestDto();
+        loanStatementRequestDto = new LoanStatementRequestDto();
+
         loanStatementRequestDto.setAmount(BigDecimal.valueOf(500000));
         loanStatementRequestDto.setTerm(24);
         loanStatementRequestDto.setFirstName("Alex");
@@ -40,6 +40,22 @@ public class CalculatorServiceImlTest {
         loanStatementRequestDto.setPassportSeries("1234");
         loanStatementRequestDto.setPassportNumber("123456");
 
+        request = new ScoringDataDto();
+
+        request.setAmount(BigDecimal.valueOf(500000));
+        request.setTerm(24);
+        request.setFirstName("Alex");
+        request.setLastName("Petrov");
+        request.setMiddleName("Jovanovich");
+        request.setBirthdate(LocalDate.of(2000,5,1));
+        request.setPassportSeries("1234");
+        request.setPassportNumber("123456");
+        request.setIsInsuranceEnabled(true);
+        request.setIsSalaryClient(true);
+    }
+
+    @Test
+    void calculateOffers_shouldReturnFourOffers() {
         List<LoanOfferDto> loanOffers = calculatorService.calculateOffers(loanStatementRequestDto);
 
         assertEquals(4, loanOffers.size());
@@ -47,18 +63,6 @@ public class CalculatorServiceImlTest {
 
     @Test
     void calculateOffers_shouldReturnCorrectPaymentSchedule() {
-        ScoringDataDto request = new ScoringDataDto();
-        request.setAmount(BigDecimal.valueOf(500000));
-        request.setTerm(24);
-        request.setFirstName("Alex");
-        request.setLastName("Petrov");
-        request.setMiddleName("Jovanovich");
-        request.setBirthdate(LocalDate.of(2000,5,1));
-        request.setPassportSeries("1234");
-        request.setPassportNumber("123456");
-        request.setIsInsuranceEnabled(true);
-        request.setIsSalaryClient(true);
-
         CreditDto credit = calculatorService.calculateCredit(request);
 
         assertEquals(24, credit.getPaymentSchedule().size());
@@ -66,18 +70,6 @@ public class CalculatorServiceImlTest {
 
     @Test
     void calculateCredit_monthlyPaymentShouldBePositive() {
-        ScoringDataDto request = new ScoringDataDto();
-        request.setAmount(BigDecimal.valueOf(500000));
-        request.setTerm(24);
-        request.setFirstName("Alex");
-        request.setLastName("Petrov");
-        request.setMiddleName("Jovanovich");
-        request.setBirthdate(LocalDate.of(2000,5,1));
-        request.setPassportSeries("1234");
-        request.setPassportNumber("123456");
-        request.setIsInsuranceEnabled(true);
-        request.setIsSalaryClient(true);
-
         CreditDto result = calculatorService.calculateCredit(request);
 
         assertTrue(result.getMonthlyPayment().compareTo(BigDecimal.ZERO) > 0);
@@ -85,18 +77,7 @@ public class CalculatorServiceImlTest {
 
     @Test
     void calculateOffers_shouldApplyInsuranceDiscount() {
-        LoanStatementRequestDto request = new LoanStatementRequestDto();
-        request.setAmount(BigDecimal.valueOf(500000));
-        request.setTerm(24);
-        request.setFirstName("Alex");
-        request.setLastName("Petrov");
-        request.setMiddleName("Jovanovich");
-        request.setEmail("test@test.com");
-        request.setBirthDate(LocalDate.of(2000,5,1));
-        request.setPassportSeries("1234");
-        request.setPassportNumber("123456");
-
-        List<LoanOfferDto> loanOffers = calculatorService.calculateOffers(request);
+        List<LoanOfferDto> loanOffers = calculatorService.calculateOffers(loanStatementRequestDto);
 
         assertFalse(loanOffers.isEmpty());
 
