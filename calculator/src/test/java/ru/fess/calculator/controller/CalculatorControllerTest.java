@@ -3,6 +3,8 @@ package ru.fess.calculator.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
@@ -24,11 +26,11 @@ import java.util.UUID;
 
 @ExtendWith(MockitoExtension.class)
 class CalculatorControllerTest {
-    private final CalculatorService calculatorService =
-            Mockito.mock(CalculatorService.class);
+    @Mock
+    private CalculatorService calculatorService;
 
-    private final CalculatorController controller =
-            new CalculatorController(calculatorService);
+    @InjectMocks
+    private CalculatorController controller;
 
     private final MockMvc mockMvc =
             MockMvcBuilders.standaloneSetup(controller).build();
@@ -36,26 +38,9 @@ class CalculatorControllerTest {
     @Test
     void calculateOffers_shouldReturnOffers() throws Exception {
 
-        LoanStatementRequestDto loanStatementRequestDto = new LoanStatementRequestDto();
-        loanStatementRequestDto.setAmount(BigDecimal.valueOf(500000));
-        loanStatementRequestDto.setTerm(24);
-        loanStatementRequestDto.setFirstName("Alex");
-        loanStatementRequestDto.setLastName("Petrov");
-        loanStatementRequestDto.setMiddleName("Jovanovich");
-        loanStatementRequestDto.setEmail("test@test.com");
-        loanStatementRequestDto.setBirthDate(LocalDate.of(2000,5,1));
-        loanStatementRequestDto.setPassportSeries("1234");
-        loanStatementRequestDto.setPassportNumber("123456");
+        LoanStatementRequestDto loanStatementRequestDto = getLoanStatementRequestDto();
 
-        LoanOfferDto offer = new LoanOfferDto();
-        offer.setStatementId(UUID.randomUUID());
-        offer.setTotalAmount(BigDecimal.valueOf(10000));
-        offer.setRequestedAmount(BigDecimal.valueOf(500000));
-        offer.setTerm(24);
-        offer.setMonthlyPayment(BigDecimal.valueOf(25447.90));
-        offer.setRate(BigDecimal.valueOf(20));
-        offer.setIsInsuranceEnabled(true);
-        offer.setIsSalaryClient(true);
+        LoanOfferDto offer = getLoanOfferDto();
 
         Mockito.when(calculatorService.calculateOffers(Mockito.any()))
                 .thenReturn(List.of(offer));
@@ -67,5 +52,36 @@ class CalculatorControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loanStatementRequestDto)))
                 .andExpect(status().isOk());
+    }
+
+    private static LoanStatementRequestDto getLoanStatementRequestDto() {
+        LoanStatementRequestDto loanStatementRequestDto = new LoanStatementRequestDto();
+
+        loanStatementRequestDto.setAmount(BigDecimal.valueOf(500000));
+        loanStatementRequestDto.setTerm(24);
+        loanStatementRequestDto.setFirstName("Alex");
+        loanStatementRequestDto.setLastName("Petrov");
+        loanStatementRequestDto.setMiddleName("Jovanovich");
+        loanStatementRequestDto.setEmail("test@test.com");
+        loanStatementRequestDto.setBirthDate(LocalDate.of(2000,5,1));
+        loanStatementRequestDto.setPassportSeries("1234");
+        loanStatementRequestDto.setPassportNumber("123456");
+
+        return loanStatementRequestDto;
+    }
+
+    private static LoanOfferDto getLoanOfferDto() {
+        LoanOfferDto offer = new LoanOfferDto();
+
+        offer.setStatementId(UUID.randomUUID());
+        offer.setTotalAmount(BigDecimal.valueOf(10000));
+        offer.setRequestedAmount(BigDecimal.valueOf(500000));
+        offer.setTerm(24);
+        offer.setMonthlyPayment(BigDecimal.valueOf(25447.90));
+        offer.setRate(BigDecimal.valueOf(20));
+        offer.setIsInsuranceEnabled(true);
+        offer.setIsSalaryClient(true);
+
+        return offer;
     }
 }

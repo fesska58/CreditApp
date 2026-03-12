@@ -24,9 +24,6 @@ public class CalculatorServiceImpl implements CalculatorService {
     public List<LoanOfferDto> calculateOffers(LoanStatementRequestDto requestDto) {
         log.info("Start calculate offers: {}", requestDto);
 
-        BigDecimal baseRate = calculatorProperties.getBase();
-        log.debug("Base rate: {}", baseRate);
-
         List<LoanOfferDto> offers = new ArrayList<>();
 
         offers.add(buildOffer(requestDto, false, false));
