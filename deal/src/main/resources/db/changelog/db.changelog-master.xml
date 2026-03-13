@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <include file="db/changelog/001-create-passport.xml"/>
+    <include file="db/changelog/002-create-client.xml"/>
+    <include file="db/changelog/003-create-credit.xml"/>
+    <include file="db/changelog/004-create-statement.xml"/>
+    <include file="db/changelog/005-create-status-history.xml"/>
+
+</databaseChangeLog>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+    xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="002-create-client" author="fess">
+
+        <createTable tableName="client">
+
+            <column name="client_id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <column name="first_name" type="varchar(50)"/>
+
+            <column name="last_name" type="varchar(50)"/>
+
+            <column name="middle_name" type="varchar(50)"/>
+
+            <column name="birth_date" type="date"/>
+
+            <column name="email" type="varchar(100)"/>
+
+            <column name="passport_id" type="uuid"/>
+
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="client"
+                baseColumnNames="passport_id"
+                constraintName="fk_client_passport"
+                referencedTableName="passport"
+                referencedColumnNames="passport_uuid"/>
+
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+    xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="003-create-client" author="fess">
+
+        <createTable tableName="credit">
+
+            <column name="credit_id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <column name="amount" type="decimal"/>
+
+            <column name="term" type="int"/>
+
+            <column name="monthly_payment" type="decimal"/>
+
+            <column name="rate" type="decimal"/>
+
+            <column name="psk" type="decimal"/>
+
+            <column name="payment_schedule" type="jsonb"/>
+
+            <column name="insurance_enabled" type="boolean"/>
+
+            <column name="salary_client" type="boolean"/>
+
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
