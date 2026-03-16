@@ -11,9 +11,6 @@ import ru.fess.deal.enums.ChangeType;
 import ru.fess.deal.repository.*;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service

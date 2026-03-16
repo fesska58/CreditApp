@@ -2,8 +2,10 @@ package ru.fess.deal.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import ru.fess.deal.dto.PaymentScheduleElementDto;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -26,7 +28,8 @@ public class Credit {
     private BigDecimal psk;
 
     @Column(columnDefinition = "jsonb")
-    private String paymentSchedule;
+    @Convert(converter = PaymentScheduleElementDto.class)
+    private List<PaymentScheduleElementDto> paymentSchedule;
 
     private boolean insuranceEnabled;
     private boolean salaryClient;

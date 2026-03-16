@@ -2,7 +2,9 @@ package ru.fess.deal.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import ru.fess.deal.dto.LoanOfferDto;
 import ru.fess.deal.enums.ApplicationStatus;
+import ru.fess.deal.util.LoanOfferDtoConverter;
 
 import java.time.Instant;
 import java.util.List;
@@ -39,7 +41,8 @@ public class Statement {
     private String sesCode;
 
     @Column(columnDefinition = "jsonb")
-    private String appliedOffer;
+    @Convert(converter = LoanOfferDtoConverter.class)
+    private LoanOfferDto appliedOffer;
 
     @OneToMany(mappedBy = "statement", cascade = CascadeType.ALL)
     private List<StatusHistory> statusHistory;

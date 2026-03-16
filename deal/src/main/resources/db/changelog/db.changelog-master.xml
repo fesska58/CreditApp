@@ -11,5 +11,7 @@
     <include file="db/changelog/003-create-credit.xml"/>
     <include file="db/changelog/004-create-statement.xml"/>
     <include file="db/changelog/005-create-status-history.xml"/>
+    <include file="db/changelog/006-add-applied-offer.xml"/>
+    <include file="db/changelog/007-add-payment-schedule.xml"/>
 
 </databaseChangeLog>
