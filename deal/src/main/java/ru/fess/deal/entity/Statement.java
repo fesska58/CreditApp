@@ -31,6 +31,7 @@ public class Statement {
     private Credit credit;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private ApplicationStatus status;
 
     private Instant creationDate;

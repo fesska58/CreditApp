@@ -21,4 +21,9 @@ public class DealController {
     public List<LoanOfferDto> calculateOffers(@RequestBody LoanStatementRequestDto request){
         return dealService.calculateOffers(request);
     }
+
+    @PostMapping("/offer/select")
+    public void selectOffers(@RequestBody LoanOfferDto request){
+        dealService.selectOffer(request);
+    }
 }

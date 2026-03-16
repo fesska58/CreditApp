@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface DealService {
     List<LoanOfferDto> calculateOffers(LoanStatementRequestDto request);
+    void selectOffer(LoanOfferDto offer);
 }

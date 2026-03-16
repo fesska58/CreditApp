@@ -2,6 +2,7 @@ package ru.fess.deal.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import ru.fess.deal.enums.ApplicationStatus;
 import ru.fess.deal.enums.ChangeType;
 
 import java.time.Instant;
@@ -20,8 +21,9 @@ public class StatusHistory {
     @Column(name = "status_history_id", columnDefinition = "uuid")
     private UUID id;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private ApplicationStatus status;
 
     private Instant time;
 
