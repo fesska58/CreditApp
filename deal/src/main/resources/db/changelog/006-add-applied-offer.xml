@@ -10,6 +10,12 @@
 
     <changeSet id="006-add-applied-offer" author="fess">
 
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="statement" columnName="applied_offer"/>
+            </not>
+        </preConditions>
+
         <addColumn tableName="statement">
 
             <column name="applied_offer" type="jsonb"/>

@@ -3,15 +3,19 @@ package ru.fess.deal.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.fess.deal.client.CalculatorClient;
+import ru.fess.deal.dto.CreditDto;
 import ru.fess.deal.dto.LoanOfferDto;
 import ru.fess.deal.dto.LoanStatementRequestDto;
+import ru.fess.deal.dto.ScoringDataDto;
 import ru.fess.deal.entity.*;
 import ru.fess.deal.enums.ApplicationStatus;
 import ru.fess.deal.enums.ChangeType;
 import ru.fess.deal.repository.*;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -67,34 +71,77 @@ public class DealServiceImpl implements DealService{
 
 
     @Override
-    public void selectOffer(LoanOfferDto offer) {
+    public void selectOffer(UUID statementId, LoanOfferDto offer) {
         Statement statement = statementRepository
-                .findById(offer.getStatementId())
-                .orElse(null);
+                .findById(statementId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                "Statement not found with id: " + statementId));
 
-        Credit credit = Credit.builder()
-                .amount(offer.getRequestedAmount())
-                .term(offer.getTerm())
-                .monthlyPayment(offer.getMonthlyPayment())
-                .rate(offer.getRate())
-                .insuranceEnabled(offer.getIsInsuranceEnabled())
-                .salaryClient(offer.getIsSalaryClient())
-                .build();
 
-        creditRepository.save(credit);
-
-        assert statement != null;
-        statement.setCredit(credit);
         statement.setStatus(ApplicationStatus.APPROVED);
-        statementRepository.save(statement);
+        statement.setAppliedOffer(offer);
 
-        StatusHistory statusHistory = StatusHistory.builder()
+        StatusHistory approvedHistory = StatusHistory.builder()
+                .statement(statement)
                 .status(ApplicationStatus.APPROVED)
                 .time(Instant.now())
-                .changeType(ChangeType.AUTOMATIC)
-                .statement(statement)
+                .changeType(ChangeType.MANUAL)
                 .build();
-        statusHistoryRepository.save(statusHistory);
+        statusHistoryRepository.save(approvedHistory);
+
+        List<StatusHistory> histories = new ArrayList<StatusHistory>();
+        histories.add(approvedHistory);
+        statement.setStatusHistory(histories);
+
+        statement.setAppliedOffer(offer);
+        statementRepository.save(statement);
+
+        Client clientEntity = statement.getClient();
+        Passport passport = clientEntity.getPassport();
+
+        ScoringDataDto scoringDataDto = ScoringDataDto
+                .builder()
+                .amount(offer.getRequestedAmount())
+                .term(offer.getTerm())
+                .firstName(clientEntity.getFirstName())
+                .lastName(clientEntity.getLastName())
+                .middleName(clientEntity.getMiddleName())
+                .birthdate(clientEntity.getBirthDate())
+                .passportSeries(passport.getSeries())
+                .passportNumber(passport.getNumber())
+                .isInsuranceEnabled(offer.getIsInsuranceEnabled())
+                .isSalaryClient(offer.getIsSalaryClient())
+                .build();
+
+        CreditDto creditDto = client.calculateCredit(scoringDataDto);
+
+        Credit credit = Credit
+                .builder()
+                .amount(creditDto.getAmount())
+                .term(creditDto.getTerm())
+                .monthlyPayment(creditDto.getMonthlyPayment())
+                .rate(creditDto.getRate())
+                .psk(creditDto.getPsk())
+                .insuranceEnabled(creditDto.getIsInsuranceEnabled())
+                .salaryClient(creditDto.getIsSalaryClient())
+                .paymentSchedule(creditDto.getPaymentSchedule())
+                .build();
+        creditRepository.save(credit);
+
+        statement.setCredit(credit);
+        statement.setStatus(ApplicationStatus.CC_APPROVED);
+
+        StatusHistory ccApprovedHistory = StatusHistory.builder()
+                .statement(statement)
+                .status(ApplicationStatus.CC_APPROVED)
+                .time(Instant.now())
+                .changeType(ChangeType.AUTOMATIC)
+                .build();
+        statusHistoryRepository.save(ccApprovedHistory);
+        histories.add(ccApprovedHistory);
+
+        statement.setStatusHistory(histories);
+        statementRepository.save(statement);
 
     }
 }

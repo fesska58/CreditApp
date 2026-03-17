@@ -9,6 +9,11 @@
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <changeSet id="007-add-payment-schedule" author="fess">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="credit" columnName="payment_schedule"/>
+            </not>
+        </preConditions>
 
         <addColumn tableName="credit">
 

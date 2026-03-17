@@ -1,11 +1,12 @@
 package ru.fess.deal.entity;
 
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
+
 import jakarta.persistence.*;
 import lombok.*;
 import ru.fess.deal.dto.LoanOfferDto;
 import ru.fess.deal.enums.ApplicationStatus;
-import ru.fess.deal.util.LoanOfferDtoConverter;
-
+import org.hibernate.annotations.Type;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -41,7 +42,7 @@ public class Statement {
     private String sesCode;
 
     @Column(columnDefinition = "jsonb")
-    @Convert(converter = LoanOfferDtoConverter.class)
+    @Type(JsonBinaryType.class)
     private LoanOfferDto appliedOffer;
 
     @OneToMany(mappedBy = "statement", cascade = CascadeType.ALL)

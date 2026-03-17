@@ -14,8 +14,8 @@ import java.util.UUID;
 @Builder
 public class Passport {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name= "passport_uuid", columnDefinition = "uuid")
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name= "passport_uuid")
     private UUID id;
 
     @Column(nullable = false)

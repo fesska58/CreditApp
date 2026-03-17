@@ -1,8 +1,11 @@
 package ru.fess.deal.entity;
 
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Type;
 import ru.fess.deal.dto.PaymentScheduleElementDto;
+
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -17,7 +20,7 @@ import java.util.UUID;
 @Builder
 public class Credit {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "credit_id", columnDefinition = "uuid")
     private UUID id;
 
@@ -28,7 +31,7 @@ public class Credit {
     private BigDecimal psk;
 
     @Column(columnDefinition = "jsonb")
-    @Convert(converter = PaymentScheduleElementDto.class)
+    @Type(JsonBinaryType.class)
     private List<PaymentScheduleElementDto> paymentSchedule;
 
     private boolean insuranceEnabled;
