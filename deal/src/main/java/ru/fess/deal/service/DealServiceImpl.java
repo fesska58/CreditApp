@@ -1,6 +1,7 @@
 package ru.fess.deal.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.fess.deal.client.CalculatorClient;
 import ru.fess.deal.dto.CreditDto;
@@ -16,7 +17,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DealServiceImpl implements DealService{
@@ -30,6 +31,7 @@ public class DealServiceImpl implements DealService{
 
     @Override
     public List<LoanOfferDto> calculateOffers(LoanStatementRequestDto request) {
+        log.info("LoanStatementRequestDto {}", request);
         Passport passportEntity = Passport.builder()
                 .series(request.getPassportSeries())
                 .number(request.getPassportNumber())
@@ -51,7 +53,8 @@ public class DealServiceImpl implements DealService{
                 .status(ApplicationStatus.PREAPPROVAL)
                 .build();
         statementRepository.save(statementEntity);
-
+        log.debug("PassportEntity {}, clientEntity {}, statementEntity {}"
+                , passportEntity, clientEntity, statementEntity);
         StatusHistory statusHistory = StatusHistory.builder()
                 .statement(statementEntity)
                 .status(ApplicationStatus.PREAPPROVAL)
@@ -65,6 +68,7 @@ public class DealServiceImpl implements DealService{
             offersEntity.setStatementId(statementEntity.getId());
         });
 
+        log.info("List offers {}", offers);
         return offers;
     }
 
@@ -72,6 +76,7 @@ public class DealServiceImpl implements DealService{
 
     @Override
     public void selectOffer(UUID statementId, LoanOfferDto offer) {
+        log.info("statementId {}, LoanOfferDto {}", statementId, offer);
         Statement statement = statementRepository
                 .findById(statementId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -80,6 +85,7 @@ public class DealServiceImpl implements DealService{
 
         statement.setStatus(ApplicationStatus.APPROVED);
         statement.setAppliedOffer(offer);
+        log.debug("statement {}", statement);
 
         StatusHistory approvedHistory = StatusHistory.builder()
                 .statement(statement)
@@ -127,6 +133,7 @@ public class DealServiceImpl implements DealService{
                 .paymentSchedule(creditDto.getPaymentSchedule())
                 .build();
         creditRepository.save(credit);
+        log.debug("Credit {}", credit);
 
         statement.setCredit(credit);
         statement.setStatus(ApplicationStatus.CC_APPROVED);
@@ -139,9 +146,10 @@ public class DealServiceImpl implements DealService{
                 .build();
         statusHistoryRepository.save(ccApprovedHistory);
         histories.add(ccApprovedHistory);
+        log.debug("ccApprovedHistory {}", ccApprovedHistory);
 
         statement.setStatusHistory(histories);
         statementRepository.save(statement);
-
+        log.debug("List histories {}", histories);
     }
 }

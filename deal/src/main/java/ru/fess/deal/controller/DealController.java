@@ -1,5 +1,6 @@
 package ru.fess.deal.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +11,7 @@ import ru.fess.deal.service.DealServiceImpl;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = "Deal", description = "API for calculate & select offer")
 @RestController
 @RequestMapping("/deal")
 @RequiredArgsConstructor
