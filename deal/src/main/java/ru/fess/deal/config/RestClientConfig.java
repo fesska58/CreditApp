@@ -8,7 +8,7 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class RestClientConfig {
     @Bean
-    public RestClient restClientCalculator() {
+    public RestClient restClient() {
         return RestClient
                 .builder()
                 .baseUrl("http://localhost:8080")

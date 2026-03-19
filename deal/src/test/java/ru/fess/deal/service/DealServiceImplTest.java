@@ -16,7 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -52,23 +52,24 @@ public class DealServiceImplTest {
         loanStatementRequestDto.setPassportSeries("1234");
         loanStatementRequestDto.setPassportNumber("123456");
 
+        UUID savedStatementId = UUID.randomUUID();
+
         List<LoanOfferDto> offers = List.of(
-                LoanOfferDto.builder().build(),
-                LoanOfferDto.builder().build()
+                LoanOfferDto.builder().statementId(savedStatementId).build(),
+                LoanOfferDto.builder().statementId(savedStatementId).build()
         );
 
         when(client.getLoanOffer(any())).thenReturn(offers);
-
-        Statement savedStatement = Statement.builder()
-                .id(UUID.randomUUID())
-                .build();
-
-        when(statementRepository.save(any())).thenReturn(savedStatement);
+        when(statementRepository.save(any())).thenReturn(
+                Statement.builder().id(savedStatementId).build()
+        );
 
         List<LoanOfferDto> result = dealService.calculateOffers(loanStatementRequestDto);
 
         assertEquals(2, result.size());
-        result.forEach(o -> assertNotNull(o.getStatementId()));
+        result.forEach(offer ->
+                assertNotNull(offer.getStatementId(), "statementId должен быть установлен")
+        );
 
         verify(passportRepository).save(any());
         verify(clientRepository).save(any());

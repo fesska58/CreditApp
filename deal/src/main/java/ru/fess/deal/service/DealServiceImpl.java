@@ -32,6 +32,7 @@ public class DealServiceImpl implements DealService{
     @Override
     public List<LoanOfferDto> calculateOffers(LoanStatementRequestDto request) {
         log.info("LoanStatementRequestDto {}", request);
+
         Passport passportEntity = Passport.builder()
                 .series(request.getPassportSeries())
                 .number(request.getPassportNumber())
@@ -52,9 +53,11 @@ public class DealServiceImpl implements DealService{
                 .client(clientEntity)
                 .status(ApplicationStatus.PREAPPROVAL)
                 .build();
-        statementRepository.save(statementEntity);
-        log.debug("PassportEntity {}, clientEntity {}, statementEntity {}"
-                , passportEntity, clientEntity, statementEntity);
+        Statement savedStatement = statementRepository.save(statementEntity);  // ← важно!
+        UUID statementId = savedStatement.getId();
+
+        log.debug("Statement saved with ID: {}", statementId);
+
         StatusHistory statusHistory = StatusHistory.builder()
                 .statement(statementEntity)
                 .status(ApplicationStatus.PREAPPROVAL)
@@ -64,12 +67,19 @@ public class DealServiceImpl implements DealService{
         statusHistoryRepository.save(statusHistory);
 
         List<LoanOfferDto> offers = client.getLoanOffer(request);
-        offers.forEach(offersEntity -> {
-            offersEntity.setStatementId(statementEntity.getId());
-        });
 
-        log.info("List offers {}", offers);
-        return offers;
+        List<LoanOfferDto> offersWithId = offers.stream()
+                .map(offer -> {
+                    log.debug("🔄 Mapping offer: oldId={}, newId={}",
+                            offer.getStatementId(), statementId);
+                    return offer.toBuilder()
+                            .statementId(statementId)
+                            .build();
+                })
+                .toList();
+
+        log.info("List offers {}", offersWithId);
+        return offersWithId;
     }
 
 

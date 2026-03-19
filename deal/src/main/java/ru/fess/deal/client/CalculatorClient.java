@@ -1,6 +1,7 @@
 package ru.fess.deal.client;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -12,9 +13,14 @@ import ru.fess.deal.dto.ScoringDataDto;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
+
 public class CalculatorClient {
     private final RestClient restClient;
+
+    @Autowired
+    public CalculatorClient(RestClient restClient) {
+        this.restClient = restClient;
+    }
 
     public List<LoanOfferDto> getLoanOffer(LoanStatementRequestDto request){
         return restClient.post()

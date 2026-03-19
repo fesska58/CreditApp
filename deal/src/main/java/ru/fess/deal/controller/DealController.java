@@ -2,6 +2,7 @@ package ru.fess.deal.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.fess.deal.dto.LoanOfferDto;
@@ -14,9 +15,14 @@ import java.util.UUID;
 @Tag(name = "Deal", description = "API for calculate & select offer")
 @RestController
 @RequestMapping("/deal")
-@RequiredArgsConstructor
+
 public class DealController {
     private final DealServiceImpl dealService;
+
+    @Autowired
+    public DealController(DealServiceImpl dealService) {
+        this.dealService = dealService;
+    }
 
     @PostMapping("/statement")
     public List<LoanOfferDto> calculateOffers(@RequestBody LoanStatementRequestDto request){
