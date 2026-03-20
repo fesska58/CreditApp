@@ -49,9 +49,13 @@ public class DealServiceImpl implements DealService{
                 .build();
         clientRepository.save(clientEntity);
 
+        String sesCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         Statement statementEntity = Statement.builder()
                 .client(clientEntity)
                 .status(ApplicationStatus.PREAPPROVAL)
+                .creationDate(Instant.now())
+                .signDate(Instant.now())
+                .sesCode(sesCode)
                 .build();
         Statement savedStatement = statementRepository.save(statementEntity);  // ← важно!
         UUID statementId = savedStatement.getId();
@@ -158,6 +162,10 @@ public class DealServiceImpl implements DealService{
         histories.add(ccApprovedHistory);
         log.debug("ccApprovedHistory {}", ccApprovedHistory);
 
+        String sesCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        statement.setCreationDate(Instant.now());
+        statement.setSesCode(sesCode);
+        statement.setSignDate(Instant.now());
         statement.setStatusHistory(histories);
         statementRepository.save(statement);
         log.debug("List histories {}", histories);

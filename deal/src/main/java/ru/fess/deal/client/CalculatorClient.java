@@ -1,6 +1,5 @@
 package ru.fess.deal.client;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
@@ -13,7 +12,6 @@ import ru.fess.deal.dto.ScoringDataDto;
 import java.util.List;
 
 @Service
-
 public class CalculatorClient {
     private final RestClient restClient;
 
