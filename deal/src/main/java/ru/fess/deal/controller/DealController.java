@@ -14,15 +14,10 @@ import java.util.UUID;
 
 @Tag(name = "Deal", description = "API for calculate & select offer")
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/deal")
-
 public class DealController {
     private final DealServiceImpl dealService;
-
-    @Autowired
-    public DealController(DealServiceImpl dealService) {
-        this.dealService = dealService;
-    }
 
     @PostMapping("/statement")
     public List<LoanOfferDto> calculateOffers(@RequestBody LoanStatementRequestDto request){
@@ -30,9 +25,7 @@ public class DealController {
     }
 
     @PostMapping("/offer/select/{statementId}")
-    public ResponseEntity<Void> selectOffers(
-            @PathVariable UUID statementId,
-            @RequestBody LoanOfferDto request){
+    public ResponseEntity<Void> selectOffers(@PathVariable UUID statementId, @RequestBody LoanOfferDto request){
 
         dealService.selectOffer(statementId, request);
         return ResponseEntity.ok().build();

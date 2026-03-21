@@ -25,7 +25,7 @@ public class Credit {
     private UUID id;
 
     private BigDecimal amount;
-    private int term;
+    private Integer term;
     private BigDecimal monthlyPayment;
     private BigDecimal rate;
     private BigDecimal psk;
@@ -34,6 +34,6 @@ public class Credit {
     @Type(JsonBinaryType.class)
     private List<PaymentScheduleElementDto> paymentSchedule;
 
-    private boolean insuranceEnabled;
-    private boolean salaryClient;
+    private Boolean insuranceEnabled;
+    private Boolean salaryClient;
 }

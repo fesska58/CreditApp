@@ -4,34 +4,34 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.fess.deal.client.CalculatorClient;
-import ru.fess.deal.dto.CreditDto;
-import ru.fess.deal.dto.LoanOfferDto;
-import ru.fess.deal.dto.LoanStatementRequestDto;
-import ru.fess.deal.dto.ScoringDataDto;
+import ru.fess.deal.dto.*;
 import ru.fess.deal.entity.*;
 import ru.fess.deal.enums.ApplicationStatus;
 import ru.fess.deal.enums.ChangeType;
 import ru.fess.deal.repository.*;
 
-import java.time.Instant;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DealServiceImpl implements DealService{
+public class DealServiceImpl implements DealService {
 
     private final CalculatorClient client;
     private final ClientRepository clientRepository;
     private final StatementRepository statementRepository;
     private final PassportRepository passportRepository;
     private final CreditRepository creditRepository;
-    private final StatusHistoryRepository statusHistoryRepository;
 
     @Override
     public List<LoanOfferDto> calculateOffers(LoanStatementRequestDto request) {
         log.info("LoanStatementRequestDto {}", request);
+
+        validateRequest(request);
 
         Passport passportEntity = Passport.builder()
                 .series(request.getPassportSeries())
@@ -49,26 +49,11 @@ public class DealServiceImpl implements DealService{
                 .build();
         clientRepository.save(clientEntity);
 
-        String sesCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        Statement statementEntity = Statement.builder()
-                .client(clientEntity)
-                .status(ApplicationStatus.PREAPPROVAL)
-                .creationDate(Instant.now())
-                .signDate(Instant.now())
-                .sesCode(sesCode)
-                .build();
-        Statement savedStatement = statementRepository.save(statementEntity);  // ← важно!
+
+        Statement savedStatement = createStatement(clientEntity);
         UUID statementId = savedStatement.getId();
 
         log.debug("Statement saved with ID: {}", statementId);
-
-        StatusHistory statusHistory = StatusHistory.builder()
-                .statement(statementEntity)
-                .status(ApplicationStatus.PREAPPROVAL)
-                .time(Instant.now())
-                .changeType(ChangeType.AUTOMATIC)
-                .build();
-        statusHistoryRepository.save(statusHistory);
 
         List<LoanOfferDto> offers = client.getLoanOffer(request);
 
@@ -87,34 +72,28 @@ public class DealServiceImpl implements DealService{
     }
 
 
-
     @Override
     public void selectOffer(UUID statementId, LoanOfferDto offer) {
         log.info("statementId {}, LoanOfferDto {}", statementId, offer);
         Statement statement = statementRepository
                 .findById(statementId)
                 .orElseThrow(() -> new IllegalArgumentException(
-                "Statement not found with id: " + statementId));
+                        "Statement not found with id: " + statementId));
 
+        log.debug("statement {}", statement);
 
         statement.setStatus(ApplicationStatus.APPROVED);
         statement.setAppliedOffer(offer);
-        log.debug("statement {}", statement);
 
-        StatusHistory approvedHistory = StatusHistory.builder()
-                .statement(statement)
+        StatementStatusHistoryDto approvedHistory = StatementStatusHistoryDto.builder()
                 .status(ApplicationStatus.APPROVED)
-                .time(Instant.now())
+                .time(LocalDateTime.now())
                 .changeType(ChangeType.MANUAL)
                 .build();
-        statusHistoryRepository.save(approvedHistory);
 
-        List<StatusHistory> histories = new ArrayList<StatusHistory>();
-        histories.add(approvedHistory);
-        statement.setStatusHistory(histories);
-
+        statement.getStatusHistory().add(approvedHistory);
         statement.setAppliedOffer(offer);
-        statementRepository.save(statement);
+        statementRepository.save(statement); // - statement save
 
         Client clientEntity = statement.getClient();
         Passport passport = clientEntity.getPassport();
@@ -133,7 +112,7 @@ public class DealServiceImpl implements DealService{
                 .isSalaryClient(offer.getIsSalaryClient())
                 .build();
 
-        CreditDto creditDto = client.calculateCredit(scoringDataDto);
+        CreditDto creditDto = client.calculateCredit(scoringDataDto); // - POST запрос на /calculator/calc
 
         Credit credit = Credit
                 .builder()
@@ -151,23 +130,69 @@ public class DealServiceImpl implements DealService{
 
         statement.setCredit(credit);
         statement.setStatus(ApplicationStatus.CC_APPROVED);
+        String sesCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        statement.setCreationDate(LocalDateTime.now());
+        statement.setSesCode(sesCode);
+        statement.setSignDate(LocalDateTime.now());
 
-        StatusHistory ccApprovedHistory = StatusHistory.builder()
-                .statement(statement)
+        StatementStatusHistoryDto ccApprovedHistory = StatementStatusHistoryDto.builder()
                 .status(ApplicationStatus.CC_APPROVED)
-                .time(Instant.now())
+                .time(LocalDateTime.now())
                 .changeType(ChangeType.AUTOMATIC)
                 .build();
-        statusHistoryRepository.save(ccApprovedHistory);
-        histories.add(ccApprovedHistory);
         log.debug("ccApprovedHistory {}", ccApprovedHistory);
 
-        String sesCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        statement.setCreationDate(Instant.now());
-        statement.setSesCode(sesCode);
-        statement.setSignDate(Instant.now());
-        statement.setStatusHistory(histories);
+
+        statement.getStatusHistory().add(ccApprovedHistory);
         statementRepository.save(statement);
-        log.debug("List histories {}", histories);
+    }
+
+
+    private Statement createStatement(Client client) {
+        String sesCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        Statement statement = Statement.builder()
+                .client(client)
+                .status(ApplicationStatus.PREAPPROVAL)
+                .creationDate(LocalDateTime.now())
+                .signDate(LocalDateTime.now())
+                .sesCode(sesCode)
+                .statusHistory(new ArrayList<>())
+                .build();
+
+        StatementStatusHistoryDto history = StatementStatusHistoryDto.builder()
+                .status(ApplicationStatus.PREAPPROVAL)
+                .time(LocalDateTime.now())
+                .changeType(ChangeType.AUTOMATIC)
+                .build();
+
+        statement.getStatusHistory().add(history);
+
+        return statementRepository.save(statement);
+    }
+
+    private void validateRequest(LoanStatementRequestDto request) {
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+
+        if (request.getTerm() == null || request.getTerm() < 6 || request.getTerm() > 60) {
+            throw new IllegalArgumentException("Term must be between 6 and 60 months");
+        }
+
+        if (request.getEmail() == null || !request.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            throw new IllegalArgumentException("Invalid email format: " + request.getEmail());
+        }
+
+        if (request.getBirthDate() == null || request.getBirthDate().isAfter(LocalDate.now().minusYears(18))) {
+            throw new IllegalArgumentException("Client must be at least 18 years old");
+        }
+
+        if (request.getPassportSeries() == null || !request.getPassportSeries().matches("\\d{4}")) {
+            throw new IllegalArgumentException("Invalid passport series");
+        }
+        if (request.getPassportNumber() == null || !request.getPassportNumber().matches("\\d{6}")) {
+            throw new IllegalArgumentException("Invalid passport number");
+        }
     }
 }
