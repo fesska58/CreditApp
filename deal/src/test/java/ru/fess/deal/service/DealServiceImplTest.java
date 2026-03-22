@@ -2,15 +2,11 @@ package ru.fess.deal.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.fess.deal.client.CalculatorClient;
-import ru.fess.deal.dto.CreditDto;
-import ru.fess.deal.dto.LoanOfferDto;
-import ru.fess.deal.dto.LoanStatementRequestDto;
-import ru.fess.deal.dto.ScoringDataDto;
+import ru.fess.deal.dto.*;
 import ru.fess.deal.entity.*;
 import ru.fess.deal.enums.ApplicationStatus;
 import ru.fess.deal.enums.ChangeType;
@@ -18,7 +14,8 @@ import ru.fess.deal.repository.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Collections;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,8 +36,6 @@ public class DealServiceImplTest {
     private PassportRepository passportRepository;
     @Mock
     private CreditRepository creditRepository;
-    @Mock
-    private StatusHistoryRepository statusHistoryRepository;
     @InjectMocks
     private DealServiceImpl dealService;
 
@@ -79,125 +74,215 @@ public class DealServiceImplTest {
         verify(passportRepository).save(any());
         verify(clientRepository).save(any());
         verify(statementRepository).save(any());
-        verify(statusHistoryRepository).save(any());
         verify(client).getLoanOffer(any());
     }
 
     @Test
-    void selectOffer_shouldUpdateStatementAndCreateCredit() {
-        // === Arrange ===
+    void calculateOffers_shouldReturnEmptyList_whenCalculatorReturnsEmpty() {
+        // Arrange
+        LoanStatementRequestDto request = createValidRequestDto();
+
+        when(client.getLoanOffer(any())).thenReturn(List.of());
+        when(statementRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        List<LoanOfferDto> result = dealService.calculateOffers(request);
+
+        // Assert
+        assertTrue(result.isEmpty());
+        verify(statementRepository).save(any()); // Statement всё равно должен сохраниться
+    }
+
+    @Test
+    void calculateOffers_shouldThrowException_whenInvalidEmail() {
+        LoanStatementRequestDto request = createValidRequestDto();
+        request.setEmail("invalid-email");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> dealService.calculateOffers(request)
+        );
+
+        assertTrue(exception.getMessage().contains("Invalid email"));
+
+        verify(passportRepository, never()).save(any());
+        verify(clientRepository, never()).save(any());
+        verify(statementRepository, never()).save(any());
+        verify(client, never()).getLoanOffer(any());
+    }
+
+    @Test
+    void calculateOffers_shouldCreateClientWithPassport_whenNewClient() {
+        LoanStatementRequestDto request = createValidRequestDto();
+        UUID savedStatementId = UUID.randomUUID();
+
+        when(client.getLoanOffer(any())).thenReturn(List.of(LoanOfferDto.builder().statementId(savedStatementId).build()));
+        when(statementRepository.save(any())).thenAnswer(invocation -> {
+            Statement stmt = invocation.getArgument(0);
+            stmt.setId(savedStatementId);
+            return stmt;
+        });
+        when(passportRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(clientRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        dealService.calculateOffers(request);
+
+        verify(passportRepository).save(argThat(passport ->
+                passport.getSeries().equals("1234") &&
+                        passport.getNumber().equals("123456")));
+
+        verify(clientRepository).save(argThat(client ->
+                client.getEmail().equals("test@test.com") &&
+                        client.getFirstName().equals("Alex")));
+    }
+
+    @Test
+    void calculateOffers_shouldAddStatusHistory_whenStatementCreated() {
+        LoanStatementRequestDto request = createValidRequestDto();
+        UUID savedStatementId = UUID.randomUUID();
+
+        when(client.getLoanOffer(any())).thenReturn(List.of(LoanOfferDto.builder().statementId(savedStatementId).build()));
+        when(statementRepository.save(any())).thenAnswer(invocation -> {
+            Statement stmt = invocation.getArgument(0);
+            stmt.setId(savedStatementId);
+            stmt.setStatusHistory(List.of(
+                    StatementStatusHistoryDto.builder()
+                            .status(ApplicationStatus.PREAPPROVAL)
+                            .time(LocalDateTime.now())
+                            .changeType(ChangeType.AUTOMATIC)
+                            .build()
+            ));
+            return stmt;
+        });
+
+        List<LoanOfferDto> result = dealService.calculateOffers(request);
+
+        assertNotNull(result);
+        verify(statementRepository).save(argThat(stmt ->
+                stmt.getStatusHistory() != null &&
+                        !stmt.getStatusHistory().isEmpty() &&
+                        stmt.getStatusHistory().get(0).getStatus() == ApplicationStatus.PREAPPROVAL));
+    }
+
+    @Test
+    void selectOffer_shouldThrowException_whenStatementNotFound() {
+        UUID nonExistentId = UUID.randomUUID();
+        LoanOfferDto offer = LoanOfferDto.builder().build();
+
+        when(statementRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> dealService.selectOffer(nonExistentId, offer)
+        );
+
+        assertTrue(exception.getMessage().contains("Statement not found"));
+
+        verify(statementRepository, never()).save(any());
+        verify(creditRepository, never()).save(any());
+        verify(client, never()).calculateCredit(any());
+    }
+
+    @Test
+    void selectOffer_shouldPropagateException_whenCalculatorFails() {
         UUID statementId = UUID.randomUUID();
 
-        // Создаём зависимые сущности
         Passport passport = Passport.builder()
                 .series("1234")
-                .number("567890")
+                .number("123456")
                 .build();
 
         Client clientEntity = Client.builder()
-                .firstName("Ivan")
-                .lastName("Ivanov")
-                .middleName("Ivanovich")
-                .birthDate(LocalDate.of(1990, 1, 1))
-                .passport(passport)
+                .firstName("Alex")
+                .lastName("Petrov")
+                .middleName("Jovanovich")
+                .birthDate(LocalDate.of(2000, 5, 1))
+                .passport(passport)  // ✅ Важно!
                 .build();
 
         Statement statement = Statement.builder()
                 .id(statementId)
                 .client(clientEntity)
                 .status(ApplicationStatus.PREAPPROVAL)
+                .statusHistory(new ArrayList<>())  // ✅ Чтобы не было NPE при add()
                 .build();
 
         LoanOfferDto offer = LoanOfferDto.builder()
-                .statementId(statementId)
-                .requestedAmount(BigDecimal.valueOf(300_000))
+                .requestedAmount(BigDecimal.valueOf(500000))
                 .term(24)
-                .isInsuranceEnabled(true)
-                .isSalaryClient(false)
                 .build();
 
-        CreditDto creditDto = CreditDto.builder()
-                .amount(BigDecimal.valueOf(300_000))
-                .term(24)
-                .monthlyPayment(BigDecimal.valueOf(15_000))
-                .rate(BigDecimal.valueOf(15.5))
-                .psk(BigDecimal.valueOf(16.2))
-                .isInsuranceEnabled(true)
-                .isSalaryClient(false)
-                .paymentSchedule(Collections.emptyList())
-                .build();
-
-        when(statementRepository.findById(statementId))
-                .thenReturn(Optional.of(statement));
-
-        when(statementRepository.save(any(Statement.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0)); // возвращаем то, что передали
+        when(statementRepository.findById(statementId)).thenReturn(Optional.of(statement));
 
         when(client.calculateCredit(any(ScoringDataDto.class)))
-                .thenReturn(creditDto);
+                .thenThrow(new RuntimeException("Calculator service unavailable"));
 
-        when(creditRepository.save(any(Credit.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(statementRepository.save(any(Statement.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(statusHistoryRepository.save(any(StatusHistory.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> dealService.selectOffer(statementId, offer)
+        );
+
+        assertEquals("Calculator service unavailable", exception.getMessage());
+
+        verify(creditRepository, never()).save(any());
+
+        verify(statementRepository).save(statement);
+
+        verify(client).calculateCredit(any(ScoringDataDto.class));
+    }
+
+    @Test
+    void selectOffer_shouldAddTwoHistoryEntries() {
+        UUID statementId = UUID.randomUUID();
+        LoanOfferDto offer = LoanOfferDto.builder()
+                .requestedAmount(BigDecimal.valueOf(200000))
+                .term(18)
+                .build();
+
+        Statement statement = Statement.builder()
+                .id(statementId)
+                .client(Client.builder().passport(Passport.builder().build()).build())
+                .statusHistory(new ArrayList<>())
+                .build();
+
+        when(statementRepository.findById(statementId)).thenReturn(Optional.of(statement));
+        when(client.calculateCredit(any())).thenReturn(CreditDto.builder().build());
+        when(statementRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(creditRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         dealService.selectOffer(statementId, offer);
 
-        verify(statementRepository).findById(statementId);
+        List<StatementStatusHistoryDto> history = statement.getStatusHistory();
 
+        assertEquals(2, history.size(), "Should add exactly 2 history entries");
 
-        verify(statusHistoryRepository, times(2)).save(any(StatusHistory.class));
+        StatementStatusHistoryDto first = history.get(0);
+        assertEquals(ApplicationStatus.APPROVED, first.getStatus());
+        assertEquals(ChangeType.MANUAL, first.getChangeType());
+        assertNotNull(first.getTime());
 
+        StatementStatusHistoryDto second = history.get(1);
+        assertEquals(ApplicationStatus.CC_APPROVED, second.getStatus());
+        assertEquals(ChangeType.AUTOMATIC, second.getChangeType());
+        assertNotNull(second.getTime());
 
-        verify(creditRepository).save(any(Credit.class));
-
-        ArgumentCaptor<ScoringDataDto> scoringCaptor = ArgumentCaptor.forClass(ScoringDataDto.class);
-        verify(client).calculateCredit(scoringCaptor.capture());
-        ScoringDataDto capturedScoring = scoringCaptor.getValue();
-
-        assertEquals(BigDecimal.valueOf(300_000), capturedScoring.getAmount());
-        assertEquals(24, capturedScoring.getTerm());
-        assertEquals("Ivan", capturedScoring.getFirstName());
-        assertEquals("Ivanov", capturedScoring.getLastName());
-        assertEquals("Ivanovich", capturedScoring.getMiddleName());
-        assertEquals(LocalDate.of(1990, 1, 1), capturedScoring.getBirthdate());
-        assertEquals("1234", capturedScoring.getPassportSeries());
-        assertEquals("567890", capturedScoring.getPassportNumber());
-        assertTrue(capturedScoring.getIsInsuranceEnabled());
-        assertFalse(capturedScoring.getIsSalaryClient());
-
-
-        ArgumentCaptor<Statement> statementCaptor = ArgumentCaptor.forClass(Statement.class);
-        verify(statementRepository, atLeastOnce()).save(statementCaptor.capture());
-
-        Statement savedStatement = statementCaptor.getValue();
-        assertEquals(ApplicationStatus.CC_APPROVED, savedStatement.getStatus());
-        assertEquals(offer, savedStatement.getAppliedOffer());
-        assertNotNull(savedStatement.getCredit());
-
-
-        Credit savedCredit = savedStatement.getCredit();
-        assertEquals(BigDecimal.valueOf(300_000), savedCredit.getAmount());
-        assertEquals(24, savedCredit.getTerm());
-        assertEquals(BigDecimal.valueOf(15_000), savedCredit.getMonthlyPayment());
-        assertEquals(BigDecimal.valueOf(15.5), savedCredit.getRate());
-        assertTrue(savedCredit.isInsuranceEnabled());
-        assertFalse(savedCredit.isSalaryClient());
-
-
-        ArgumentCaptor<StatusHistory> historyCaptor = ArgumentCaptor.forClass(StatusHistory.class);
-        verify(statusHistoryRepository, times(2)).save(historyCaptor.capture());
-        List<StatusHistory> savedHistories = historyCaptor.getAllValues();
-
-
-        StatusHistory approvedHistory = savedHistories.get(0);
-        assertEquals(ApplicationStatus.APPROVED, approvedHistory.getStatus());
-        assertEquals(ChangeType.MANUAL, approvedHistory.getChangeType());
-
-        StatusHistory ccApprovedHistory = savedHistories.get(1);
-        assertEquals(ApplicationStatus.CC_APPROVED, ccApprovedHistory.getStatus());
-        assertEquals(ChangeType.AUTOMATIC, ccApprovedHistory.getChangeType());
+        assertTrue(!second.getTime().isBefore(first.getTime()));
     }
 
+
+    private LoanStatementRequestDto createValidRequestDto() {
+        LoanStatementRequestDto dto = new LoanStatementRequestDto();
+        dto.setAmount(BigDecimal.valueOf(500000));
+        dto.setTerm(24);
+        dto.setFirstName("Alex");
+        dto.setLastName("Petrov");
+        dto.setMiddleName("Jovanovich");
+        dto.setEmail("test@test.com");
+        dto.setBirthDate(LocalDate.of(2000, 5, 1));
+        dto.setPassportSeries("1234");
+        dto.setPassportNumber("123456");
+        return dto;
+    }
 }

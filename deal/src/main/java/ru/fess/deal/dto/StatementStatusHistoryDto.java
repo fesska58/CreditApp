@@ -9,6 +9,7 @@ import ru.fess.deal.enums.ApplicationStatus;
 import ru.fess.deal.enums.ChangeType;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -16,6 +17,6 @@ import java.time.Instant;
 @AllArgsConstructor
 public class StatementStatusHistoryDto {
     private ApplicationStatus status;
-    private Instant time;
+    private LocalDateTime time;
     private ChangeType changeType;
 }

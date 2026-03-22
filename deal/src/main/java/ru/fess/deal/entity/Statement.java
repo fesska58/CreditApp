@@ -5,9 +5,11 @@ import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.*;
 import ru.fess.deal.dto.LoanOfferDto;
+import ru.fess.deal.dto.StatementStatusHistoryDto;
 import ru.fess.deal.enums.ApplicationStatus;
 import org.hibernate.annotations.Type;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,14 +39,15 @@ public class Statement {
     @Column(name = "status")
     private ApplicationStatus status;
 
-    private Instant creationDate;
-    private Instant signDate;
+    private LocalDateTime creationDate;
+    private LocalDateTime signDate;
     private String sesCode;
 
     @Column(columnDefinition = "jsonb")
     @Type(JsonBinaryType.class)
     private LoanOfferDto appliedOffer;
 
-    @OneToMany(mappedBy = "statement", cascade = CascadeType.ALL)
-    private List<StatusHistory> statusHistory;
+    @Column(columnDefinition = "jsonb")
+    @Type(JsonBinaryType.class)
+    private List<StatementStatusHistoryDto> statusHistory;
 }
